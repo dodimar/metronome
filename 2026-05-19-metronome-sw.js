@@ -2,11 +2,11 @@
 // Strategy: cache-first for the app shell. Bump CACHE_NAME to force a refresh
 // when shipping a new version of the HTML.
 
-const CACHE_NAME = 'metronome-practice-v1';
+const CACHE_NAME = 'metronome-practice-v2';
 
 const PRECACHE_URLS = [
   './',
-  './2026-05-19-metronome.html',
+  './index.html',
   './2026-05-19-metronome.webmanifest',
   './2026-05-19-metronome-icon-192.png',
   './2026-05-19-metronome-icon-512.png',
@@ -48,7 +48,7 @@ self.addEventListener('fetch', event => {
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
         }
         return response;
-      }).catch(() => caches.match('./2026-05-19-metronome.html'));
+      }).catch(() => caches.match('./index.html'));
     })
   );
 });

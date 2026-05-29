@@ -2,7 +2,7 @@
   "name": "Metronome Practice",
   "short_name": "Metronome",
   "description": "Customizable metronome with subdivisions, practice modes, and playlists.",
-  "start_url": "./2026-05-19-metronome.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

@@ -1,0 +1,2548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1a1a1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Metronome">
+<link rel="manifest" href="2026-05-19-metronome.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="2026-05-19-metronome-icon-192.png">
+<link rel="apple-touch-icon" href="2026-05-19-metronome-icon-192.png">
+<title>Metronome Practice</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #1a1a1a;
+    color: #e8e8e8;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    overscroll-behavior: none;
+  }
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 16px);
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #888;
+    margin: 12px 0 14px;
+  }
+  .section {
+    width: 100%;
+    background: #232323;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 14px;
+  }
+  .tempo-display {
+    text-align: center;
+    line-height: 1;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
+  }
+  .bpm-input {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-family: inherit;
+    font-size: 84px;
+    font-weight: 200;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    padding: 0;
+    margin: 0;
+    width: 3.2ch;
+    outline: none;
+    caret-color: #f5a623;
+    -moz-appearance: textfield;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+    cursor: text;
+  }
+  .bpm-input::-webkit-inner-spin-button,
+  .bpm-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .bpm-input:hover { background: rgba(245, 166, 35, 0.06); }
+  .bpm-input:focus { color: #f5a623; background: rgba(245, 166, 35, 0.08); }
+  .tempo-display .unit {
+    font-size: 16px;
+    font-weight: 500;
+    color: #888;
+    letter-spacing: 0.12em;
+    cursor: text;
+  }
+  .tempo-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .nudge {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #303030;
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    font-weight: 300;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+  }
+  .nudge:active { background: #404040; }
+  .slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: #404040;
+    outline: none;
+    cursor: pointer;
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #f5a623;
+    cursor: pointer;
+    border: none;
+  }
+  .slider::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #f5a623;
+    cursor: pointer;
+    border: none;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .row:last-child { margin-bottom: 0; }
+  .row label {
+    flex: 1;
+    font-size: 14px;
+    color: #aaa;
+  }
+  .timesig {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .timesig select {
+    background: #303030;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 28px 8px 12px;
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+  .timesig .divider {
+    color: #666;
+    font-size: 22px;
+    font-weight: 200;
+    padding: 0 2px;
+  }
+  .toggle {
+    position: relative;
+    width: 44px;
+    height: 26px;
+    background: #404040;
+    border-radius: 13px;
+    cursor: pointer;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: #f5a623; }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    background: #fff;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: left 0.15s;
+  }
+  .toggle.on::after { left: 20px; }
+  /* Pill button group (used for subdivision base and sound bank) */
+  .pills {
+    display: inline-flex;
+    gap: 4px;
+    background: #1c1c1c;
+    padding: 4px;
+    border-radius: 10px;
+  }
+  .pill {
+    background: transparent;
+    border: none;
+    color: #aaa;
+    padding: 7px 14px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 7px;
+    cursor: pointer;
+    font-family: inherit;
+    min-width: 40px;
+    transition: background 0.12s, color 0.12s;
+  }
+  .pill:active { background: #2a2a2a; }
+  .pill.selected { background: #f5a623; color: #1a1a1a; }
+
+  /* Pattern grid */
+  .pattern {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    justify-content: center;
+    margin-top: 16px;
+    padding: 4px 0;
+    min-height: 28px;
+  }
+  .beat-group {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+  .beat-group + .beat-group::before {
+    /* faint separator dot between beats (decorative spacing) */
+    content: '';
+    width: 2px; height: 2px;
+    border-radius: 50%;
+    background: #333;
+    margin-right: 5px;
+  }
+  .cell {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #3a3a3a;
+    cursor: pointer;
+    transition: background 0.06s ease, transform 0.06s ease, opacity 0.15s;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .cell.downbeat { background: #555; width: 26px; height: 26px; }
+  .cell.accent { background: #6e4a1a; width: 28px; height: 28px; }
+  .cell.muted { opacity: 0.3; }
+  .cell.muted::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 45%, #888 45%, #888 55%, transparent 55%);
+    border-radius: 50%;
+  }
+  .cell.active { background: #f5a623; transform: scale(1.3); }
+  .cell.accent.active { background: #ff6b35; transform: scale(1.25); }
+  .pattern-hint {
+    text-align: center;
+    color: #666;
+    font-size: 11px;
+    margin-top: 10px;
+    letter-spacing: 0.04em;
+  }
+  .row .desc {
+    font-size: 11px;
+    color: #666;
+    margin-left: 6px;
+  }
+  .disabled-row { opacity: 0.4; pointer-events: none; }
+
+  /* Collapsible practice-mode config block */
+  .config-block {
+    border-top: 1px solid #2a2a2a;
+    padding-top: 14px;
+    margin-top: 14px;
+  }
+  .config-block[hidden] { display: none; }
+
+  /* Small number input (used for practice-mode config) */
+  .num-input {
+    background: #303030;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 15px;
+    width: 72px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-family: inherit;
+    -moz-appearance: textfield;
+  }
+  .num-input::-webkit-inner-spin-button,
+  .num-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .num-input:focus { outline: 2px solid #f5a623; outline-offset: -2px; background: #383838; }
+
+  /* Beat-mute buttons (Skip beat — Fixed mode) */
+  .beat-mute-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .beat-mute-btn {
+    min-width: 38px;
+    height: 38px;
+    border: 1px solid #404040;
+    background: #2c2c2c;
+    color: #ddd;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+  }
+  .beat-mute-btn:active { background: #383838; }
+  .beat-mute-btn.muted {
+    background: transparent;
+    border-color: #444;
+    color: #555;
+    text-decoration: line-through;
+  }
+
+  /* Practice section sub-rows (label above field for narrow content) */
+  .stack-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .stack-row:last-child { margin-bottom: 0; }
+  .stack-row > label { color: #aaa; font-size: 14px; }
+
+  /* Status badge inside section title (e.g. "counting in...") */
+  .status-badge {
+    font-size: 10px;
+    font-weight: 600;
+    color: #f5a623;
+    background: rgba(245, 166, 35, 0.12);
+    padding: 2px 7px;
+    border-radius: 10px;
+    margin-left: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: none;
+  }
+  .status-badge.visible { display: inline-block; }
+
+  /* ===== Library: song bar, overlay, lists, modals ===== */
+
+  /* Song bar (visible only when a song is loaded) */
+  .song-bar {
+    width: 100%;
+    background: #2a1f0e;
+    border: 1px solid rgba(245, 166, 35, 0.5);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .song-bar[hidden] { display: none; }
+  .song-nav {
+    background: transparent;
+    border: none;
+    color: #f5a623;
+    font-size: 28px;
+    font-weight: 300;
+    cursor: pointer;
+    padding: 0 8px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .song-nav[disabled] { color: #4a3a1a; cursor: default; }
+  .song-info { flex: 1; min-width: 0; }
+  .song-name {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .song-meta {
+    color: #aaa;
+    font-size: 11px;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .song-close {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 6px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  /* Wide button (library section, list actions) */
+  .btn-wide {
+    width: 100%;
+    background: #303030;
+    border: none;
+    color: #fff;
+    padding: 13px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    letter-spacing: 0.02em;
+  }
+  .btn-wide:active { background: #404040; }
+  .btn-wide.primary { background: #f5a623; color: #1a1a1a; }
+  .btn-wide.primary:active { background: #e09617; }
+  .btn-wide + .btn-wide { margin-top: 8px; }
+
+  /* Full-screen library overlay */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: #1a1a1a;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 16px);
+  }
+  .overlay[hidden] { display: none; }
+  .overlay-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0 14px;
+    border-bottom: 1px solid #2a2a2a;
+    margin-bottom: 12px;
+  }
+  .overlay-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 0.04em;
+  }
+  .overlay-close {
+    background: transparent;
+    border: none;
+    color: #aaa;
+    font-size: 26px;
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+  }
+  .overlay-body {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 528px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  /* Tabs inside overlay */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: #1c1c1c;
+    padding: 4px;
+    border-radius: 10px;
+    margin-bottom: 14px;
+  }
+  .tab {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #aaa;
+    padding: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 7px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .tab.selected { background: #f5a623; color: #1a1a1a; }
+
+  /* List items */
+  .list-item {
+    background: #232323;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+  }
+  .list-item.active-song {
+    border: 1px solid rgba(245, 166, 35, 0.6);
+  }
+  .li-main { cursor: pointer; }
+  .li-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .li-meta {
+    font-size: 12px;
+    color: #888;
+    margin-top: 3px;
+  }
+  .li-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .li-actions button {
+    background: #303030;
+    border: none;
+    color: #ccc;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .li-actions button:active { background: #404040; }
+  .li-actions button.danger { color: #ff6b35; }
+  .li-actions button.primary { background: #f5a623; color: #1a1a1a; }
+
+  .empty-state {
+    text-align: center;
+    color: #666;
+    padding: 36px 16px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* Playlist detail (inline replacement of list) */
+  .playlist-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .playlist-back {
+    background: transparent;
+    border: none;
+    color: #f5a623;
+    font-size: 22px;
+    cursor: pointer;
+    padding: 4px 6px;
+  }
+  .playlist-detail-title {
+    flex: 1;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .playlist-song-row {
+    display: flex;
+    align-items: center;
+    background: #232323;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    gap: 8px;
+  }
+  .playlist-song-row .ps-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .playlist-song-row .ps-name {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .playlist-song-row .ps-meta {
+    color: #888;
+    font-size: 11px;
+    margin-top: 2px;
+  }
+  .playlist-song-row .ps-actions {
+    display: flex;
+    gap: 4px;
+  }
+  .icon-btn {
+    background: transparent;
+    border: 1px solid #404040;
+    color: #aaa;
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .icon-btn:active { background: #303030; }
+  .icon-btn.danger { color: #ff6b35; border-color: #5a2a18; }
+  .icon-btn[disabled] { opacity: 0.3; cursor: default; }
+
+  /* Modal dialogs (song details editor, song picker) */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .modal-backdrop[hidden] { display: none; }
+  .modal {
+    background: #232323;
+    border-radius: 14px;
+    padding: 20px;
+    width: 100%;
+    max-width: 440px;
+    max-height: 90vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .modal h3 {
+    margin: 0 0 14px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+  }
+  .modal-row { margin-bottom: 12px; }
+  .modal-row label {
+    display: block;
+    font-size: 12px;
+    color: #aaa;
+    margin-bottom: 5px;
+  }
+  .modal-row input,
+  .modal-row textarea {
+    width: 100%;
+    background: #303030;
+    border: none;
+    color: #fff;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+  }
+  .modal-row input:focus,
+  .modal-row textarea:focus { outline: 2px solid #f5a623; outline-offset: -2px; }
+  .modal-row textarea {
+    min-height: 70px;
+    resize: vertical;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 18px;
+    justify-content: flex-end;
+  }
+  .modal-actions button {
+    background: #303030;
+    border: none;
+    color: #fff;
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .modal-actions button.primary {
+    background: #f5a623;
+    color: #1a1a1a;
+  }
+
+  /* Song picker (for adding to playlist) */
+  .picker-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    background: #2a2a2a;
+    border-radius: 8px;
+    margin-bottom: 5px;
+    cursor: pointer;
+  }
+  .picker-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #f5a623;
+    flex-shrink: 0;
+  }
+  .picker-row .pr-info { flex: 1; min-width: 0; }
+  .picker-row .pr-name {
+    color: #fff;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .picker-row .pr-meta {
+    color: #888;
+    font-size: 11px;
+    margin-top: 2px;
+  }
+  .controls-bottom {
+    width: 100%;
+    display: flex;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 8px;
+  }
+  .btn {
+    flex: 1;
+    height: 60px;
+    border-radius: 14px;
+    border: none;
+    background: #303030;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+  }
+  .btn:active { background: #404040; }
+  .btn-primary {
+    background: #f5a623;
+    color: #1a1a1a;
+  }
+  .btn-primary:active { background: #e09617; }
+  .btn-primary.playing { background: #ff6b35; color: #fff; }
+  .hint {
+    font-size: 11px;
+    color: #666;
+    text-align: center;
+    margin-top: 8px;
+    letter-spacing: 0.04em;
+  }
+</style>
+</head>
+<body>
+  <h1>Metronome Practice</h1>
+
+  <div class="song-bar" id="song-bar" hidden>
+    <button class="song-nav" id="song-prev" aria-label="Previous song">&lsaquo;</button>
+    <div class="song-info">
+      <div class="song-name" id="song-bar-name"></div>
+      <div class="song-meta" id="song-bar-meta"></div>
+    </div>
+    <button class="song-nav" id="song-next" aria-label="Next song">&rsaquo;</button>
+    <button class="song-close" id="song-close" aria-label="Close song">&times;</button>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Tempo</div>
+    <div class="tempo-display">
+      <input id="bpm" class="bpm-input" type="number" inputmode="numeric" pattern="[0-9]*"
+             min="30" max="300" step="1" value="100" aria-label="Tempo in BPM">
+      <span class="unit">BPM</span>
+    </div>
+    <div class="tempo-controls">
+      <button class="nudge" id="bpm-down" aria-label="Decrease tempo">&minus;</button>
+      <input type="range" min="30" max="300" value="100" class="slider" id="bpm-slider" aria-label="Tempo">
+      <button class="nudge" id="bpm-up" aria-label="Increase tempo">+</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Meter</div>
+    <div class="row">
+      <label for="ts-num">Time signature</label>
+      <div class="timesig">
+        <select id="ts-num" aria-label="Beats per bar"></select>
+        <span class="divider">/</span>
+        <select id="ts-den" aria-label="Note value">
+          <option>1</option><option>2</option><option selected>4</option>
+          <option>8</option><option>16</option><option>32</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <label>Accent beat 1</label>
+      <div class="toggle on" id="accent-toggle" role="switch" aria-checked="true" tabindex="0"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Subdivision</div>
+    <div class="row">
+      <label>Per beat</label>
+      <div class="pills" id="subdiv-pills">
+        <button class="pill selected" type="button" data-val="1">1</button>
+        <button class="pill" type="button" data-val="2">2</button>
+        <button class="pill" type="button" data-val="3">3</button>
+        <button class="pill" type="button" data-val="4">4</button>
+      </div>
+    </div>
+    <div class="row" id="advanced-row">
+      <label>Per-bar pattern <span class="desc">(unique pattern for each beat)</span></label>
+      <div class="toggle" id="advanced-toggle" role="switch" aria-checked="false" tabindex="0"></div>
+    </div>
+    <div class="pattern" id="pattern"></div>
+    <div class="pattern-hint">Tap a dot to mute/unmute that subdivision</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Sound</div>
+    <div class="row">
+      <label>Click sound</label>
+      <div class="pills" id="sound-pills">
+        <button class="pill selected" type="button" data-val="beep">Beep</button>
+        <button class="pill" type="button" data-val="woodblock">Wood</button>
+        <button class="pill" type="button" data-val="cowbell">Bell</button>
+        <button class="pill" type="button" data-val="click">Click</button>
+      </div>
+    </div>
+    <div class="row" id="vibration-row">
+      <label>Vibration <span class="desc" id="vibration-desc"></span></label>
+      <div class="toggle" id="vibration-toggle" role="switch" aria-checked="false" tabindex="0"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Skip beat <span class="status-badge" id="skip-badge">on</span></div>
+    <div class="row">
+      <label>Enable</label>
+      <div class="toggle" id="skip-toggle" role="switch" aria-checked="false" tabindex="0"></div>
+    </div>
+    <div class="config-block" id="skip-config" hidden>
+      <div class="row">
+        <label>Mode</label>
+        <div class="pills" id="skip-mode-pills">
+          <button class="pill selected" type="button" data-val="fixed">Fixed</button>
+          <button class="pill" type="button" data-val="random">Random</button>
+          <button class="pill" type="button" data-val="gap">Gap</button>
+        </div>
+      </div>
+
+      <!-- Fixed: pick which beats to mute -->
+      <div class="stack-row" id="skip-fixed">
+        <label>Mute these beats (tap to toggle)</label>
+        <div class="beat-mute-row" id="beat-mute-row"></div>
+      </div>
+
+      <!-- Random: how many beats per bar, hold pattern for N bars -->
+      <div class="stack-row" id="skip-random" hidden>
+        <div class="row" style="margin-bottom:0;width:100%">
+          <label>Beats muted per bar</label>
+          <input type="number" class="num-input" id="random-count" min="1" max="32" step="1" value="1">
+        </div>
+        <div class="row" style="margin-bottom:0;width:100%;margin-top:10px">
+          <label>Re-randomize every <span class="desc">(bars)</span></label>
+          <input type="number" class="num-input" id="random-hold" min="1" max="64" step="1" value="2">
+        </div>
+      </div>
+
+      <!-- Gap: play N bars, silence M bars -->
+      <div class="stack-row" id="skip-gap" hidden>
+        <div class="row" style="margin-bottom:0;width:100%">
+          <label>Play bars</label>
+          <input type="number" class="num-input" id="gap-play" min="1" max="64" step="1" value="2">
+        </div>
+        <div class="row" style="margin-bottom:0;width:100%;margin-top:10px">
+          <label>Silent bars</label>
+          <input type="number" class="num-input" id="gap-silent" min="1" max="64" step="1" value="2">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Auto-speed <span class="status-badge" id="auto-badge">on</span></div>
+    <div class="row">
+      <label>Enable</label>
+      <div class="toggle" id="auto-toggle" role="switch" aria-checked="false" tabindex="0"></div>
+    </div>
+    <div class="config-block" id="auto-config" hidden>
+      <div class="row">
+        <label>Start tempo <span class="desc">(BPM)</span></label>
+        <input type="number" class="num-input" id="auto-start" min="30" max="300" step="1" value="80">
+      </div>
+      <div class="row">
+        <label>Target tempo <span class="desc">(BPM)</span></label>
+        <input type="number" class="num-input" id="auto-target" min="30" max="300" step="1" value="120">
+      </div>
+      <div class="row">
+        <label>Tempo step <span class="desc">(BPM)</span></label>
+        <input type="number" class="num-input" id="auto-step" min="1" max="50" step="1" value="2">
+      </div>
+      <div class="row">
+        <label>Bars per step</label>
+        <input type="number" class="num-input" id="auto-bars" min="1" max="64" step="1" value="4">
+      </div>
+      <div class="row">
+        <label>Count-in <span class="desc">(beats)</span></label>
+        <input type="number" class="num-input" id="auto-countin" min="0" max="16" step="1" value="4">
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Library</div>
+    <button class="btn-wide" id="save-current-btn">Save current settings as song</button>
+    <button class="btn-wide" id="save-changes-btn" hidden>Save changes to this song</button>
+    <button class="btn-wide" id="open-library-btn">Open library</button>
+  </div>
+
+  <div class="controls-bottom">
+    <button class="btn" id="tap-btn">TAP</button>
+    <button class="btn btn-primary" id="play-btn">START</button>
+  </div>
+  <div class="hint">Tap the BPM number to type a tempo &middot; Space = start/stop &middot; T = tap &middot; &uarr;&darr; = tempo</div>
+
+  <!-- ===== Library overlay ===== -->
+  <div class="overlay" id="library-overlay" hidden>
+    <div class="overlay-bar">
+      <div class="overlay-title">Library</div>
+      <button class="overlay-close" id="library-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="overlay-body">
+      <div class="tabs" id="library-tabs">
+        <button class="tab selected" type="button" data-tab="songs">Songs</button>
+        <button class="tab" type="button" data-tab="playlists">Playlists</button>
+        <button class="tab" type="button" data-tab="backup">Backup</button>
+      </div>
+
+      <!-- SONGS TAB -->
+      <div class="tab-content" id="tab-songs">
+        <button class="btn-wide primary" id="lib-new-song">+ Save current as new song</button>
+        <div style="height:14px"></div>
+        <div id="songs-list"></div>
+      </div>
+
+      <!-- PLAYLISTS TAB (list view + inline detail view) -->
+      <div class="tab-content" id="tab-playlists" hidden>
+        <div id="playlists-list-view">
+          <button class="btn-wide primary" id="lib-new-playlist">+ New playlist</button>
+          <div style="height:14px"></div>
+          <div id="playlists-list"></div>
+        </div>
+        <div id="playlist-detail-view" hidden>
+          <div class="playlist-detail-header">
+            <button class="playlist-back" id="playlist-back" aria-label="Back">&lsaquo;</button>
+            <div class="playlist-detail-title" id="playlist-detail-title"></div>
+          </div>
+          <button class="btn-wide primary" id="playlist-play-btn">&#9654; Play this playlist</button>
+          <div style="height:6px"></div>
+          <button class="btn-wide" id="playlist-add-songs-btn">+ Add songs</button>
+          <div style="height:14px"></div>
+          <div id="playlist-songs"></div>
+        </div>
+      </div>
+
+      <!-- BACKUP TAB -->
+      <div class="tab-content" id="tab-backup" hidden>
+        <div class="empty-state" style="text-align:left;color:#aaa;padding:8px 4px 14px">
+          Save all your songs and playlists to a JSON file you can keep as a backup or share with someone else. Imports are merged with your current library (nothing is deleted).
+        </div>
+        <button class="btn-wide primary" id="export-btn">&darr; Export library as JSON</button>
+        <button class="btn-wide" id="import-btn">&uarr; Import library from JSON</button>
+        <input type="file" id="import-input" accept="application/json,.json" hidden>
+        <div id="backup-stats" style="text-align:center;color:#666;font-size:12px;margin-top:18px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Song details modal (edit name / key / notes) ===== -->
+  <div class="modal-backdrop" id="details-modal" hidden>
+    <div class="modal">
+      <h3 id="details-title">Song details</h3>
+      <div class="modal-row">
+        <label for="details-name">Name</label>
+        <input id="details-name" type="text" maxlength="80" placeholder="Song name">
+      </div>
+      <div class="modal-row">
+        <label for="details-key">Key <span style="color:#666">(optional)</span></label>
+        <input id="details-key" type="text" maxlength="32" placeholder="e.g. Bb minor">
+      </div>
+      <div class="modal-row">
+        <label for="details-notes">Notes <span style="color:#666">(optional)</span></label>
+        <textarea id="details-notes" maxlength="2000" placeholder="Chord chart, form, anything"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button id="details-cancel">Cancel</button>
+        <button class="primary" id="details-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Add-songs picker modal ===== -->
+  <div class="modal-backdrop" id="picker-modal" hidden>
+    <div class="modal">
+      <h3>Add songs to playlist</h3>
+      <div id="picker-list"></div>
+      <div class="modal-actions">
+        <button id="picker-cancel">Cancel</button>
+        <button class="primary" id="picker-add">Add selected</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ============== Audio Engine (look-ahead scheduler) ==============
+  // Reference: Chris Wilson, "A Tale of Two Clocks". The scheduler runs on a
+  // setInterval timer but schedules audio events on the AudioContext clock,
+  // which is sample-accurate and unaffected by main-thread jank.
+  let audioCtx = null;
+  let isPlaying = false;
+  let currentBeat = 0;          // index of the next beat to schedule
+  let nextNoteTime = 0;         // AudioContext time at which next beat plays
+  const SCHEDULE_AHEAD = 0.1;   // seconds — schedule notes 100ms ahead
+  const LOOK_AHEAD_MS = 25.0;   // ms — polling interval
+  let schedulerTimer = null;
+
+  // Queue used to drive the visual pulse so dots flash in sync with audio
+  const notesInQueue = [];
+
+  // Track sub-position too now that we have subdivisions
+  let currentSub = 0;
+
+  // ============== State ==============
+  const state = {
+    bpm: 100,
+    tsNum: 4,
+    tsDen: 4,
+    accent: true,
+    subdivBase: 1,           // 1, 2, 3, or 4 clicks per beat
+    advancedMode: false,     // false = simple (every beat same), true = per-bar pattern
+    pattern: [true, true, true, true],  // length = tsNum * subdivBase; true = play, false = mute
+    sound: 'beep',           // 'beep' | 'woodblock' | 'cowbell' | 'click'
+    vibration: false,
+    practice: {
+      skipBeat: {
+        enabled: false,
+        mode: 'fixed',                  // 'fixed' | 'random' | 'gap'
+        fixed: { beats: [false, false, false, false] },  // length tracks tsNum
+        random: { count: 1, holdBars: 2 },
+        gap:    { play: 2, silent: 2 },
+      },
+      autoSpeed: {
+        enabled: false,
+        startBpm: 80,
+        targetBpm: 120,
+        bpmStep: 2,
+        barsPerStep: 4,
+        countInBeats: 4,
+      },
+    },
+  };
+
+  // Runtime bookkeeping for practice mode — recomputed at each start()
+  const practiceRuntime = {
+    inCountIn: false,
+    countInBeatsRemaining: 0,
+    barsThisStep: 0,
+    currentRandomBeats: [],
+    randomHoldRemaining: 0,
+    barsInGapCycle: 0,
+  };
+
+  // ============== Sound bank ==============
+  // Each synth gets a "level" of 'accent' | 'beat' | 'sub' so it can vary
+  // pitch and volume accordingly.
+
+  // Cached noise buffer (used by the "click" sound)
+  let noiseBuffer = null;
+  function getNoiseBuffer() {
+    if (noiseBuffer) return noiseBuffer;
+    const len = Math.floor(audioCtx.sampleRate * 0.1);  // 100ms
+    noiseBuffer = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+    const data = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    return noiseBuffer;
+  }
+
+  function synthBeep(time, level) {
+    const freq = level === 'accent' ? 2000 : level === 'beat' ? 1500 : 1000;
+    const vol  = level === 'accent' ? 0.45 : level === 'beat' ? 0.32 : 0.16;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, time);
+    gain.gain.exponentialRampToValueAtTime(vol, time + 0.001);
+    gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.04);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(time);
+    osc.stop(time + 0.05);
+  }
+
+  function synthWoodblock(time, level) {
+    // Triangle wave with quick pitch drop — sounds like a wood click
+    const base = level === 'accent' ? 1800 : level === 'beat' ? 1400 : 900;
+    const vol  = level === 'accent' ? 0.55 : level === 'beat' ? 0.45 : 0.22;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(base * 1.5, time);
+    osc.frequency.exponentialRampToValueAtTime(base, time + 0.015);
+    gain.gain.setValueAtTime(0.0001, time);
+    gain.gain.exponentialRampToValueAtTime(vol, time + 0.002);
+    gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.06);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(time);
+    osc.stop(time + 0.07);
+  }
+
+  function synthCowbell(time, level) {
+    // Classic TR-808-style cowbell: two square waves through a bandpass.
+    const baseVol = level === 'accent' ? 0.32 : level === 'beat' ? 0.24 : 0.12;
+    const pitch   = level === 'accent' ? 1.18 : level === 'beat' ? 1.0 : 0.85;
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const filter = audioCtx.createBiquadFilter();
+    const gain = audioCtx.createGain();
+    osc1.type = 'square'; osc2.type = 'square';
+    osc1.frequency.value = 540 * pitch;
+    osc2.frequency.value = 800 * pitch;
+    filter.type = 'bandpass';
+    filter.frequency.value = 800 * pitch;
+    filter.Q.value = 1.2;
+    gain.gain.setValueAtTime(0.0001, time);
+    gain.gain.exponentialRampToValueAtTime(baseVol, time + 0.002);
+    gain.gain.exponentialRampToValueAtTime(baseVol * 0.3, time + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.3);
+    osc1.connect(filter); osc2.connect(filter);
+    filter.connect(gain).connect(audioCtx.destination);
+    osc1.start(time); osc2.start(time);
+    osc1.stop(time + 0.35); osc2.stop(time + 0.35);
+  }
+
+  function synthClick(time, level) {
+    // Noise burst through bandpass — short, percussive, cuts through.
+    const vol        = level === 'accent' ? 0.6  : level === 'beat' ? 0.45 : 0.22;
+    const filterFreq = level === 'accent' ? 4500 : level === 'beat' ? 3500 : 2800;
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = getNoiseBuffer();
+    const offset = Math.random() * 0.05;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = filterFreq;
+    filter.Q.value = 2.5;
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.0001, time);
+    gain.gain.exponentialRampToValueAtTime(vol, time + 0.001);
+    gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.035);
+    noise.connect(filter).connect(gain).connect(audioCtx.destination);
+    noise.start(time, offset, 0.04);
+  }
+
+  const SOUNDS = {
+    beep: synthBeep,
+    woodblock: synthWoodblock,
+    cowbell: synthCowbell,
+    click: synthClick,
+  };
+
+  function playClick(time, level) {
+    if (!audioCtx) return;
+    (SOUNDS[state.sound] || synthBeep)(time, level);
+  }
+
+  function maybeVibrate(time, level) {
+    if (!state.vibration || !('vibrate' in navigator)) return;
+    const ms = level === 'accent' ? 80 : level === 'beat' ? 50 : 25;
+    const delayMs = (time - audioCtx.currentTime) * 1000;
+    setTimeout(() => navigator.vibrate(ms), Math.max(0, delayMs));
+  }
+
+  // ============== Scheduler ==============
+  function advancePosition() {
+    const secondsPerSub = (60.0 / state.bpm) / state.subdivBase;
+    nextNoteTime += secondsPerSub;
+    currentSub++;
+    if (currentSub >= state.subdivBase) {
+      currentSub = 0;
+      currentBeat = (currentBeat + 1) % state.tsNum;
+      onBeatComplete();
+      if (currentBeat === 0) onBarComplete();
+    }
+  }
+
+  function levelFor(beat, sub) {
+    if (sub === 0) return (beat === 0 && state.accent) ? 'accent' : 'beat';
+    return 'sub';
+  }
+
+  // Decide whether the current position should be silenced by skip-beat
+  function isSkipBeatMuted(beat) {
+    const sb = state.practice.skipBeat;
+    if (!sb.enabled) return false;
+    if (sb.mode === 'fixed') {
+      return !!sb.fixed.beats[beat];
+    }
+    if (sb.mode === 'random') {
+      return practiceRuntime.currentRandomBeats.indexOf(beat) >= 0;
+    }
+    if (sb.mode === 'gap') {
+      const playN = Math.max(1, sb.gap.play | 0);
+      return practiceRuntime.barsInGapCycle >= playN;
+    }
+    return false;
+  }
+
+  function scheduleNote(beat, sub, time) {
+    const idx = beat * state.subdivBase + sub;
+    let muted = !state.pattern[idx];
+    // Skip-beat applies to whole beats; count-in plays through normally
+    if (!practiceRuntime.inCountIn && isSkipBeatMuted(beat)) muted = true;
+    notesInQueue.push({ beat, sub, time, muted });
+    if (muted) return;
+    const level = levelFor(beat, sub);
+    playClick(time, level);
+    maybeVibrate(time, level);
+  }
+
+  // ============== Practice runtime hooks ==============
+  function onBeatComplete() {
+    if (practiceRuntime.inCountIn) {
+      practiceRuntime.countInBeatsRemaining--;
+      if (practiceRuntime.countInBeatsRemaining <= 0) {
+        practiceRuntime.inCountIn = false;
+        practiceRuntime.barsThisStep = 0;
+        updatePracticeBadges();
+      }
+    }
+  }
+
+  function onBarComplete() {
+    if (practiceRuntime.inCountIn) return;  // bars don't count during count-in
+    // Skip-beat: gap cycle bookkeeping
+    if (state.practice.skipBeat.enabled && state.practice.skipBeat.mode === 'gap') {
+      practiceRuntime.barsInGapCycle++;
+      const cycleLen = (state.practice.skipBeat.gap.play | 0) + (state.practice.skipBeat.gap.silent | 0);
+      if (practiceRuntime.barsInGapCycle >= cycleLen) practiceRuntime.barsInGapCycle = 0;
+    }
+    // Skip-beat: random hold/refresh
+    if (state.practice.skipBeat.enabled && state.practice.skipBeat.mode === 'random') {
+      practiceRuntime.randomHoldRemaining--;
+      if (practiceRuntime.randomHoldRemaining <= 0) {
+        practiceRuntime.currentRandomBeats = pickRandomBeats(
+          state.practice.skipBeat.random.count, state.tsNum
+        );
+        practiceRuntime.randomHoldRemaining = Math.max(1, state.practice.skipBeat.random.holdBars | 0);
+      }
+    }
+    // Auto-speed: maybe bump tempo
+    if (state.practice.autoSpeed.enabled) {
+      practiceRuntime.barsThisStep++;
+      const as = state.practice.autoSpeed;
+      if (practiceRuntime.barsThisStep >= Math.max(1, as.barsPerStep | 0)) {
+        practiceRuntime.barsThisStep = 0;
+        const next = state.bpm + Math.max(1, as.bpmStep | 0);
+        if (state.bpm >= as.targetBpm) {
+          // already at/past target — stop on next bar
+          stop();
+          return;
+        }
+        if (next >= as.targetBpm) {
+          setBpm(as.targetBpm);
+        } else {
+          setBpm(next);
+        }
+      }
+    }
+  }
+
+  function pickRandomBeats(count, tsNum) {
+    count = Math.max(0, Math.min(count | 0, tsNum));
+    const all = [];
+    for (let i = 0; i < tsNum; i++) all.push(i);
+    // Partial Fisher–Yates
+    for (let i = 0; i < count; i++) {
+      const j = i + Math.floor(Math.random() * (tsNum - i));
+      const tmp = all[i]; all[i] = all[j]; all[j] = tmp;
+    }
+    return all.slice(0, count).sort((a, b) => a - b);
+  }
+
+  function scheduler() {
+    while (nextNoteTime < audioCtx.currentTime + SCHEDULE_AHEAD) {
+      scheduleNote(currentBeat, currentSub, nextNoteTime);
+      advancePosition();
+    }
+  }
+
+  // ============== UI pulse loop (decoupled from scheduler) ==============
+  let lastDrawBeat = -1;
+  let lastDrawSub = -1;
+  function drawLoop() {
+    if (!isPlaying) return;
+    const now = audioCtx.currentTime;
+    let toShow = null;
+    while (notesInQueue.length && notesInQueue[0].time < now) {
+      toShow = notesInQueue[0];
+      notesInQueue.shift();
+    }
+    if (toShow && (toShow.beat !== lastDrawBeat || toShow.sub !== lastDrawSub)) {
+      pulseCell(toShow.beat, toShow.sub, toShow.muted);
+      lastDrawBeat = toShow.beat;
+      lastDrawSub = toShow.sub;
+    }
+    requestAnimationFrame(drawLoop);
+  }
+
+  // ============== Transport ==============
+  function start() {
+    if (isPlaying) return;
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    // Practice-mode setup BEFORE scheduling begins
+    const as = state.practice.autoSpeed;
+    if (as.enabled) {
+      setBpm(as.startBpm);
+      practiceRuntime.inCountIn = (as.countInBeats | 0) > 0;
+      practiceRuntime.countInBeatsRemaining = Math.max(0, as.countInBeats | 0);
+    } else {
+      practiceRuntime.inCountIn = false;
+      practiceRuntime.countInBeatsRemaining = 0;
+    }
+    practiceRuntime.barsThisStep = 0;
+    practiceRuntime.barsInGapCycle = 0;
+    if (state.practice.skipBeat.enabled && state.practice.skipBeat.mode === 'random') {
+      practiceRuntime.currentRandomBeats = pickRandomBeats(
+        state.practice.skipBeat.random.count, state.tsNum
+      );
+      practiceRuntime.randomHoldRemaining = Math.max(1, state.practice.skipBeat.random.holdBars | 0);
+    } else {
+      practiceRuntime.currentRandomBeats = [];
+      practiceRuntime.randomHoldRemaining = 0;
+    }
+
+    isPlaying = true;
+    currentBeat = 0;
+    currentSub = 0;
+    lastDrawBeat = -1;
+    lastDrawSub = -1;
+    notesInQueue.length = 0;
+    nextNoteTime = audioCtx.currentTime + 0.05;
+    schedulerTimer = setInterval(scheduler, LOOK_AHEAD_MS);
+    requestAnimationFrame(drawLoop);
+    updatePlayBtn();
+    updatePracticeBadges();
+  }
+  function stop() {
+    if (!isPlaying) return;
+    isPlaying = false;
+    clearInterval(schedulerTimer);
+    schedulerTimer = null;
+    notesInQueue.length = 0;
+    clearActiveCells();
+    practiceRuntime.inCountIn = false;
+    updatePlayBtn();
+    updatePracticeBadges();
+  }
+  function toggleTransport() { isPlaying ? stop() : start(); }
+
+  // ============== UI ==============
+  const $ = id => document.getElementById(id);
+  const bpmEl = $('bpm');
+  const bpmSlider = $('bpm-slider');
+  const patternEl = $('pattern');
+  const playBtn = $('play-btn');
+  const tapBtn = $('tap-btn');
+  const tsNumSel = $('ts-num');
+  const tsDenSel = $('ts-den');
+  const accentToggle = $('accent-toggle');
+  const subdivPills = $('subdiv-pills');
+  const advancedToggle = $('advanced-toggle');
+  const soundPills = $('sound-pills');
+  const vibrationToggle = $('vibration-toggle');
+  const vibrationDesc = $('vibration-desc');
+  // Skip-beat
+  const skipToggle = $('skip-toggle');
+  const skipConfig = $('skip-config');
+  const skipModePills = $('skip-mode-pills');
+  const skipFixed = $('skip-fixed');
+  const skipRandom = $('skip-random');
+  const skipGap = $('skip-gap');
+  const beatMuteRow = $('beat-mute-row');
+  const randomCountInput = $('random-count');
+  const randomHoldInput = $('random-hold');
+  const gapPlayInput = $('gap-play');
+  const gapSilentInput = $('gap-silent');
+  const skipBadge = $('skip-badge');
+  // Auto-speed
+  const autoToggle = $('auto-toggle');
+  const autoConfig = $('auto-config');
+  const autoStartInput = $('auto-start');
+  const autoTargetInput = $('auto-target');
+  const autoStepInput = $('auto-step');
+  const autoBarsInput = $('auto-bars');
+  const autoCountinInput = $('auto-countin');
+  const autoBadge = $('auto-badge');
+
+  // populate numerator options 1..32
+  for (let i = 1; i <= 32; i++) {
+    const opt = document.createElement('option');
+    opt.value = opt.textContent = i;
+    if (i === 4) opt.selected = true;
+    tsNumSel.appendChild(opt);
+  }
+
+  // ============== Pattern grid ==============
+  function buildPattern(tsNum, subdivBase, template) {
+    // template (optional) is a per-beat sub pattern to mirror across all beats
+    const len = tsNum * subdivBase;
+    const out = new Array(len).fill(true);
+    if (template && template.length === subdivBase) {
+      for (let i = 0; i < len; i++) out[i] = template[i % subdivBase];
+    }
+    return out;
+  }
+
+  function resizePatternPreserving() {
+    const newLen = state.tsNum * state.subdivBase;
+    const old = state.pattern;
+    const out = new Array(newLen).fill(true);
+    for (let i = 0; i < newLen; i++) {
+      if (i < old.length) out[i] = old[i];
+      else out[i] = old[i % state.subdivBase];  // mirror first beat for new beats
+    }
+    state.pattern = out;
+  }
+
+  function normalizeToSimple() {
+    // Force all beats to share beat-0's pattern
+    for (let b = 1; b < state.tsNum; b++) {
+      for (let s = 0; s < state.subdivBase; s++) {
+        state.pattern[b * state.subdivBase + s] = state.pattern[s];
+      }
+    }
+  }
+
+  function renderPattern() {
+    patternEl.innerHTML = '';
+    for (let b = 0; b < state.tsNum; b++) {
+      const group = document.createElement('div');
+      group.className = 'beat-group';
+      for (let s = 0; s < state.subdivBase; s++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        const isDownbeat = s === 0;
+        const isAccentCell = b === 0 && s === 0 && state.accent;
+        if (isAccentCell) cell.classList.add('accent');
+        else if (isDownbeat) cell.classList.add('downbeat');
+        const idx = b * state.subdivBase + s;
+        if (!state.pattern[idx]) cell.classList.add('muted');
+        cell.addEventListener('click', () => togglePatternCell(b, s));
+        group.appendChild(cell);
+      }
+      patternEl.appendChild(group);
+    }
+  }
+
+  function togglePatternCell(beat, sub) {
+    const idx = beat * state.subdivBase + sub;
+    const newVal = !state.pattern[idx];
+    if (state.advancedMode) {
+      state.pattern[idx] = newVal;
+    } else {
+      // simple mode: mirror across all beats
+      for (let b = 0; b < state.tsNum; b++) {
+        state.pattern[b * state.subdivBase + sub] = newVal;
+      }
+    }
+    renderPattern();
+  }
+
+  function pulseCell(beat, sub, muted) {
+    // clear previous active cells
+    const prev = patternEl.querySelectorAll('.cell.active');
+    for (let i = 0; i < prev.length; i++) prev[i].classList.remove('active');
+    if (muted) return;
+    const group = patternEl.children[beat];
+    if (!group) return;
+    const cell = group.children[sub];
+    if (!cell) return;
+    cell.classList.add('active');
+  }
+
+  function clearActiveCells() {
+    const prev = patternEl.querySelectorAll('.cell.active');
+    for (let i = 0; i < prev.length; i++) prev[i].classList.remove('active');
+  }
+  function updatePlayBtn() {
+    playBtn.textContent = isPlaying ? 'STOP' : 'START';
+    playBtn.classList.toggle('playing', isPlaying);
+  }
+  function setBpm(v) {
+    v = Math.max(30, Math.min(300, Math.round(v)));
+    state.bpm = v;
+    // Don't overwrite the field while the user is mid-edit
+    if (document.activeElement !== bpmEl) bpmEl.value = v;
+    bpmSlider.value = v;
+  }
+
+  // Direct numeric entry on the big BPM display
+  bpmEl.addEventListener('focus', () => bpmEl.select());
+  bpmEl.addEventListener('keydown', e => {
+    if (e.code === 'Enter') { e.preventDefault(); bpmEl.blur(); }
+    else if (e.code === 'Escape') { e.preventDefault(); bpmEl.value = state.bpm; bpmEl.blur(); }
+  });
+  bpmEl.addEventListener('blur', () => {
+    const v = parseInt(bpmEl.value, 10);
+    if (Number.isFinite(v)) setBpm(v);
+    // setBpm clamps; make sure the field reflects the clamped value
+    bpmEl.value = state.bpm;
+  });
+  // Tapping the "BPM" unit label also focuses the input
+  document.querySelector('.tempo-display .unit').addEventListener('click', () => bpmEl.focus());
+
+  // Tempo controls
+  bpmSlider.addEventListener('input', e => setBpm(+e.target.value));
+  $('bpm-up').addEventListener('click', () => setBpm(state.bpm + 1));
+  $('bpm-down').addEventListener('click', () => setBpm(state.bpm - 1));
+
+  // Long-press nudge for fast scrolling through tempos
+  function holdNudge(btn, delta) {
+    let timer = null, interval = null;
+    const begin = (e) => {
+      if (e.cancelable) e.preventDefault();
+      timer = setTimeout(() => {
+        interval = setInterval(() => setBpm(state.bpm + delta), 60);
+      }, 400);
+    };
+    const end = () => { clearTimeout(timer); clearInterval(interval); timer = interval = null; };
+    btn.addEventListener('mousedown', begin);
+    btn.addEventListener('touchstart', begin, { passive: false });
+    btn.addEventListener('mouseup', end);
+    btn.addEventListener('mouseleave', end);
+    btn.addEventListener('touchend', end);
+    btn.addEventListener('touchcancel', end);
+  }
+  holdNudge($('bpm-up'), 1);
+  holdNudge($('bpm-down'), -1);
+
+  // Time signature
+  tsNumSel.addEventListener('change', e => {
+    state.tsNum = +e.target.value;
+    resizePatternPreserving();
+    currentBeat = 0;
+    currentSub = 0;
+    renderPattern();
+  });
+  tsDenSel.addEventListener('change', e => {
+    // Informational — BPM always refers to the denominator note value.
+    state.tsDen = +e.target.value;
+  });
+
+  // Accent toggle
+  function setAccent(on) {
+    state.accent = on;
+    accentToggle.classList.toggle('on', on);
+    accentToggle.setAttribute('aria-checked', String(on));
+    renderPattern();
+  }
+  accentToggle.addEventListener('click', () => setAccent(!state.accent));
+  accentToggle.addEventListener('keydown', e => {
+    if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); setAccent(!state.accent); }
+  });
+
+  // Subdivision pills
+  subdivPills.querySelectorAll('.pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const v = +pill.dataset.val;
+      if (v === state.subdivBase) return;
+      subdivPills.querySelectorAll('.pill').forEach(p => p.classList.remove('selected'));
+      pill.classList.add('selected');
+      // When base changes, rebuild pattern (resets mute state for clarity)
+      state.subdivBase = v;
+      state.pattern = buildPattern(state.tsNum, state.subdivBase);
+      currentSub = 0;
+      renderPattern();
+    });
+  });
+
+  // Advanced mode toggle (simple/per-bar)
+  function setAdvanced(on) {
+    state.advancedMode = on;
+    advancedToggle.classList.toggle('on', on);
+    advancedToggle.setAttribute('aria-checked', String(on));
+    if (!on) normalizeToSimple();
+    renderPattern();
+  }
+  advancedToggle.addEventListener('click', () => setAdvanced(!state.advancedMode));
+  advancedToggle.addEventListener('keydown', e => {
+    if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); setAdvanced(!state.advancedMode); }
+  });
+
+  // Sound bank pills
+  soundPills.querySelectorAll('.pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const v = pill.dataset.val;
+      soundPills.querySelectorAll('.pill').forEach(p => p.classList.remove('selected'));
+      pill.classList.add('selected');
+      state.sound = v;
+    });
+  });
+
+  // Vibration toggle (with feature detection)
+  function setVibration(on) {
+    state.vibration = on;
+    vibrationToggle.classList.toggle('on', on);
+    vibrationToggle.setAttribute('aria-checked', String(on));
+  }
+  vibrationToggle.addEventListener('click', () => setVibration(!state.vibration));
+  vibrationToggle.addEventListener('keydown', e => {
+    if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); setVibration(!state.vibration); }
+  });
+  if (!('vibrate' in navigator)) {
+    $('vibration-row').classList.add('disabled-row');
+    vibrationDesc.textContent = '(not supported on this device)';
+  }
+
+  // Play / stop
+  playBtn.addEventListener('click', toggleTransport);
+
+  // ============== Tap tempo (rolling avg of last 4 taps, 2s reset) ==============
+  let tapTimes = [];
+  function tap() {
+    const now = performance.now();
+    if (tapTimes.length && now - tapTimes[tapTimes.length - 1] > 2000) {
+      tapTimes = [];
+    }
+    tapTimes.push(now);
+    if (tapTimes.length > 4) tapTimes.shift();
+    if (tapTimes.length >= 2) {
+      const intervals = [];
+      for (let i = 1; i < tapTimes.length; i++) intervals.push(tapTimes[i] - tapTimes[i - 1]);
+      const avgMs = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+      const bpm = 60000 / avgMs;
+      if (bpm >= 30 && bpm <= 300) setBpm(bpm);
+    }
+  }
+  tapBtn.addEventListener('click', tap);
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.code === 'Space') { e.preventDefault(); toggleTransport(); }
+    else if (e.code === 'KeyT') { e.preventDefault(); tap(); }
+    else if (e.code === 'ArrowUp') { e.preventDefault(); setBpm(state.bpm + 1); }
+    else if (e.code === 'ArrowDown') { e.preventDefault(); setBpm(state.bpm - 1); }
+    else if (e.code === 'ArrowRight') { e.preventDefault(); setBpm(state.bpm + 5); }
+    else if (e.code === 'ArrowLeft') { e.preventDefault(); setBpm(state.bpm - 5); }
+  });
+
+  // ============== Practice mode UI ==============
+  // Keep fixed-beats array in sync with tsNum
+  function resizeFixedBeats() {
+    const old = state.practice.skipBeat.fixed.beats;
+    const out = new Array(state.tsNum).fill(false);
+    for (let i = 0; i < Math.min(old.length, state.tsNum); i++) out[i] = !!old[i];
+    state.practice.skipBeat.fixed.beats = out;
+  }
+
+  function renderBeatMuteRow() {
+    beatMuteRow.innerHTML = '';
+    const beats = state.practice.skipBeat.fixed.beats;
+    for (let i = 0; i < state.tsNum; i++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'beat-mute-btn' + (beats[i] ? ' muted' : '');
+      btn.textContent = (i + 1);
+      btn.title = beats[i] ? `Beat ${i + 1} muted — tap to play` : `Beat ${i + 1} plays — tap to mute`;
+      btn.addEventListener('click', () => {
+        state.practice.skipBeat.fixed.beats[i] = !state.practice.skipBeat.fixed.beats[i];
+        renderBeatMuteRow();
+      });
+      beatMuteRow.appendChild(btn);
+    }
+  }
+
+  function showSkipModeConfig() {
+    const m = state.practice.skipBeat.mode;
+    skipFixed.hidden = m !== 'fixed';
+    skipRandom.hidden = m !== 'random';
+    skipGap.hidden = m !== 'gap';
+  }
+
+  function updatePracticeBadges() {
+    // Auto-speed: badge shows during count-in
+    if (state.practice.autoSpeed.enabled && isPlaying && practiceRuntime.inCountIn) {
+      autoBadge.textContent = 'counting in';
+      autoBadge.classList.add('visible');
+    } else if (state.practice.autoSpeed.enabled && isPlaying) {
+      autoBadge.textContent = 'active';
+      autoBadge.classList.add('visible');
+    } else {
+      autoBadge.classList.remove('visible');
+    }
+    // Skip-beat: badge shows while playing
+    if (state.practice.skipBeat.enabled && isPlaying && !practiceRuntime.inCountIn) {
+      skipBadge.textContent = 'active';
+      skipBadge.classList.add('visible');
+    } else {
+      skipBadge.classList.remove('visible');
+    }
+  }
+
+  // ---- Skip-beat handlers ----
+  function setSkipEnabled(on) {
+    state.practice.skipBeat.enabled = on;
+    skipToggle.classList.toggle('on', on);
+    skipToggle.setAttribute('aria-checked', String(on));
+    skipConfig.hidden = !on;
+  }
+  skipToggle.addEventListener('click', () => setSkipEnabled(!state.practice.skipBeat.enabled));
+  skipToggle.addEventListener('keydown', e => {
+    if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); setSkipEnabled(!state.practice.skipBeat.enabled); }
+  });
+
+  skipModePills.querySelectorAll('.pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const m = pill.dataset.val;
+      skipModePills.querySelectorAll('.pill').forEach(p => p.classList.remove('selected'));
+      pill.classList.add('selected');
+      state.practice.skipBeat.mode = m;
+      showSkipModeConfig();
+    });
+  });
+
+  function bindNumberInput(input, getter, setter, opts = {}) {
+    const min = opts.min ?? -Infinity;
+    const max = opts.max ?? Infinity;
+    input.addEventListener('change', () => {
+      let v = parseInt(input.value, 10);
+      if (!Number.isFinite(v)) v = getter();
+      v = Math.max(min, Math.min(max, v));
+      setter(v);
+      input.value = v;
+    });
+    input.addEventListener('focus', () => input.select());
+  }
+
+  bindNumberInput(randomCountInput,
+    () => state.practice.skipBeat.random.count,
+    v => state.practice.skipBeat.random.count = v,
+    { min: 1, max: 32 });
+  bindNumberInput(randomHoldInput,
+    () => state.practice.skipBeat.random.holdBars,
+    v => state.practice.skipBeat.random.holdBars = v,
+    { min: 1, max: 64 });
+  bindNumberInput(gapPlayInput,
+    () => state.practice.skipBeat.gap.play,
+    v => state.practice.skipBeat.gap.play = v,
+    { min: 1, max: 64 });
+  bindNumberInput(gapSilentInput,
+    () => state.practice.skipBeat.gap.silent,
+    v => state.practice.skipBeat.gap.silent = v,
+    { min: 1, max: 64 });
+
+  // ---- Auto-speed handlers ----
+  function setAutoEnabled(on) {
+    state.practice.autoSpeed.enabled = on;
+    autoToggle.classList.toggle('on', on);
+    autoToggle.setAttribute('aria-checked', String(on));
+    autoConfig.hidden = !on;
+  }
+  autoToggle.addEventListener('click', () => setAutoEnabled(!state.practice.autoSpeed.enabled));
+  autoToggle.addEventListener('keydown', e => {
+    if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); setAutoEnabled(!state.practice.autoSpeed.enabled); }
+  });
+
+  bindNumberInput(autoStartInput,
+    () => state.practice.autoSpeed.startBpm,
+    v => state.practice.autoSpeed.startBpm = v,
+    { min: 30, max: 300 });
+  bindNumberInput(autoTargetInput,
+    () => state.practice.autoSpeed.targetBpm,
+    v => state.practice.autoSpeed.targetBpm = v,
+    { min: 30, max: 300 });
+  bindNumberInput(autoStepInput,
+    () => state.practice.autoSpeed.bpmStep,
+    v => state.practice.autoSpeed.bpmStep = v,
+    { min: 1, max: 50 });
+  bindNumberInput(autoBarsInput,
+    () => state.practice.autoSpeed.barsPerStep,
+    v => state.practice.autoSpeed.barsPerStep = v,
+    { min: 1, max: 64 });
+  bindNumberInput(autoCountinInput,
+    () => state.practice.autoSpeed.countInBeats,
+    v => state.practice.autoSpeed.countInBeats = v,
+    { min: 0, max: 16 });
+
+  // Keep the fixed-beat-mute row in sync when meter changes
+  // (a second 'change' listener — the first handler updates the pattern grid,
+  // this one updates the skip-beat row using the now-updated state.tsNum)
+  tsNumSel.addEventListener('change', () => {
+    resizeFixedBeats();
+    renderBeatMuteRow();
+  });
+
+  // Initial paint of practice UI
+  resizeFixedBeats();
+  renderBeatMuteRow();
+  showSkipModeConfig();
+
+  // ============== Library: songs + playlists ==============
+  const STORAGE_KEY = 'metronomePractice.v1';
+
+  function makeId(prefix) {
+    return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  const library = {
+    songs: [],            // [{ id, name, key, notes, snapshot: {...} }]
+    playlists: [],        // [{ id, name, songIds: [...] }]
+    currentSongId: null,
+    activePlaylistId: null,
+    activeSongIndex: 0,
+  };
+
+  function persist() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        songs: library.songs,
+        playlists: library.playlists,
+        currentSongId: library.currentSongId,
+        activePlaylistId: library.activePlaylistId,
+        activeSongIndex: library.activeSongIndex,
+      }));
+    } catch (e) { console.warn('persist failed', e); }
+  }
+
+  function restoreLibrary() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      library.songs = data.songs || [];
+      library.playlists = data.playlists || [];
+      library.currentSongId = data.currentSongId || null;
+      library.activePlaylistId = data.activePlaylistId || null;
+      library.activeSongIndex = data.activeSongIndex || 0;
+    } catch (e) { console.warn('restore failed', e); }
+  }
+
+  // Snapshot every musically-relevant piece of state
+  function captureSnapshot() {
+    return {
+      bpm: state.bpm,
+      tsNum: state.tsNum,
+      tsDen: state.tsDen,
+      accent: state.accent,
+      subdivBase: state.subdivBase,
+      advancedMode: state.advancedMode,
+      pattern: state.pattern.slice(),
+      sound: state.sound,
+      vibration: state.vibration,
+      practice: JSON.parse(JSON.stringify(state.practice)),
+    };
+  }
+
+  // Apply a captured snapshot and re-sync the UI
+  function applySnapshot(snap) {
+    if (isPlaying) stop();
+    state.bpm = snap.bpm;
+    state.tsNum = snap.tsNum;
+    state.tsDen = snap.tsDen;
+    state.accent = snap.accent;
+    state.subdivBase = snap.subdivBase;
+    state.advancedMode = snap.advancedMode;
+    state.pattern = (snap.pattern || []).slice();
+    state.sound = snap.sound;
+    state.vibration = !!snap.vibration;
+    state.practice = JSON.parse(JSON.stringify(snap.practice));
+    applyStateToUI();
+  }
+
+  // Sync every relevant UI element to current state
+  function applyStateToUI() {
+    bpmEl.value = state.bpm;
+    bpmSlider.value = state.bpm;
+    tsNumSel.value = String(state.tsNum);
+    tsDenSel.value = String(state.tsDen);
+    accentToggle.classList.toggle('on', state.accent);
+    accentToggle.setAttribute('aria-checked', String(state.accent));
+    subdivPills.querySelectorAll('.pill').forEach(p => {
+      p.classList.toggle('selected', +p.dataset.val === state.subdivBase);
+    });
+    advancedToggle.classList.toggle('on', state.advancedMode);
+    advancedToggle.setAttribute('aria-checked', String(state.advancedMode));
+    soundPills.querySelectorAll('.pill').forEach(p => {
+      p.classList.toggle('selected', p.dataset.val === state.sound);
+    });
+    vibrationToggle.classList.toggle('on', state.vibration);
+    vibrationToggle.setAttribute('aria-checked', String(state.vibration));
+    // Skip-beat
+    const sb = state.practice.skipBeat;
+    skipToggle.classList.toggle('on', sb.enabled);
+    skipToggle.setAttribute('aria-checked', String(sb.enabled));
+    skipConfig.hidden = !sb.enabled;
+    skipModePills.querySelectorAll('.pill').forEach(p => {
+      p.classList.toggle('selected', p.dataset.val === sb.mode);
+    });
+    showSkipModeConfig();
+    resizeFixedBeats();
+    renderBeatMuteRow();
+    randomCountInput.value = sb.random.count;
+    randomHoldInput.value = sb.random.holdBars;
+    gapPlayInput.value = sb.gap.play;
+    gapSilentInput.value = sb.gap.silent;
+    // Auto-speed
+    const as = state.practice.autoSpeed;
+    autoToggle.classList.toggle('on', as.enabled);
+    autoToggle.setAttribute('aria-checked', String(as.enabled));
+    autoConfig.hidden = !as.enabled;
+    autoStartInput.value = as.startBpm;
+    autoTargetInput.value = as.targetBpm;
+    autoStepInput.value = as.bpmStep;
+    autoBarsInput.value = as.barsPerStep;
+    autoCountinInput.value = as.countInBeats;
+    renderPattern();
+  }
+
+  // -- CRUD helpers --
+  function findSong(id) { return library.songs.find(s => s.id === id) || null; }
+  function findPlaylist(id) { return library.playlists.find(p => p.id === id) || null; }
+
+  function createSongFromCurrent(name) {
+    const song = {
+      id: makeId('s'),
+      name: name.trim(),
+      key: '',
+      notes: '',
+      snapshot: captureSnapshot(),
+    };
+    library.songs.unshift(song);
+    persist();
+    return song;
+  }
+  function updateSongDetails(id, fields) {
+    const s = findSong(id); if (!s) return;
+    if (fields.name !== undefined) s.name = fields.name.trim();
+    if (fields.key !== undefined) s.key = fields.key.trim();
+    if (fields.notes !== undefined) s.notes = fields.notes;
+    persist();
+  }
+  function updateSongFromCurrent(id) {
+    const s = findSong(id); if (!s) return;
+    s.snapshot = captureSnapshot();
+    persist();
+  }
+  function deleteSong(id) {
+    library.songs = library.songs.filter(s => s.id !== id);
+    library.playlists.forEach(p => { p.songIds = p.songIds.filter(sid => sid !== id); });
+    if (library.currentSongId === id) {
+      library.currentSongId = null;
+      library.activePlaylistId = null;
+      library.activeSongIndex = 0;
+    }
+    persist();
+  }
+  function loadSong(id) {
+    const s = findSong(id); if (!s) return;
+    applySnapshot(s.snapshot);
+    library.currentSongId = id;
+    persist();
+    updateSongBar();
+    updateSaveChangesBtn();
+  }
+  function createPlaylist(name) {
+    const p = { id: makeId('p'), name: name.trim(), songIds: [] };
+    library.playlists.unshift(p);
+    persist();
+    return p;
+  }
+  function renamePlaylist(id, name) {
+    const p = findPlaylist(id); if (!p) return;
+    p.name = name.trim(); persist();
+  }
+  function deletePlaylist(id) {
+    library.playlists = library.playlists.filter(p => p.id !== id);
+    if (library.activePlaylistId === id) {
+      library.activePlaylistId = null;
+      library.activeSongIndex = 0;
+    }
+    persist();
+  }
+  function addSongsToPlaylist(playlistId, songIds) {
+    const p = findPlaylist(playlistId); if (!p) return;
+    songIds.forEach(sid => { if (p.songIds.indexOf(sid) < 0) p.songIds.push(sid); });
+    persist();
+  }
+  function removeSongFromPlaylist(playlistId, idx) {
+    const p = findPlaylist(playlistId); if (!p) return;
+    p.songIds.splice(idx, 1); persist();
+  }
+  function moveSongInPlaylist(playlistId, fromIdx, toIdx) {
+    const p = findPlaylist(playlistId); if (!p) return;
+    if (toIdx < 0 || toIdx >= p.songIds.length) return;
+    const [m] = p.songIds.splice(fromIdx, 1);
+    p.songIds.splice(toIdx, 0, m);
+    persist();
+  }
+
+  // -- Playlist playback --
+  function startPlaylist(playlistId) {
+    const p = findPlaylist(playlistId);
+    if (!p || p.songIds.length === 0) return;
+    library.activePlaylistId = playlistId;
+    library.activeSongIndex = 0;
+    loadSong(p.songIds[0]);
+  }
+  function startPlaylistAtIndex(playlistId, idx) {
+    const p = findPlaylist(playlistId);
+    if (!p || idx < 0 || idx >= p.songIds.length) return;
+    library.activePlaylistId = playlistId;
+    library.activeSongIndex = idx;
+    loadSong(p.songIds[idx]);
+  }
+  function endPlaylistMode() {
+    library.activePlaylistId = null;
+    library.activeSongIndex = 0;
+    library.currentSongId = null;
+    persist();
+    updateSongBar();
+    updateSaveChangesBtn();
+  }
+  function gotoSongInPlaylist(delta) {
+    const p = findPlaylist(library.activePlaylistId);
+    if (!p) return;
+    const idx = library.activeSongIndex + delta;
+    if (idx < 0 || idx >= p.songIds.length) return;
+    library.activeSongIndex = idx;
+    loadSong(p.songIds[idx]);
+  }
+
+  // -- Song bar UI --
+  function songMetaLine(song) {
+    const snap = song.snapshot;
+    const parts = [snap.bpm + ' BPM', snap.tsNum + '/' + snap.tsDen];
+    if (song.key) parts.push(song.key);
+    return parts.join(' • ');
+  }
+  function updateSongBar() {
+    const songBar = $('song-bar');
+    if (!library.currentSongId) { songBar.hidden = true; return; }
+    const s = findSong(library.currentSongId);
+    if (!s) { songBar.hidden = true; return; }
+    songBar.hidden = false;
+    $('song-bar-name').textContent = s.name;
+    let meta = songMetaLine(s);
+    const pl = library.activePlaylistId ? findPlaylist(library.activePlaylistId) : null;
+    if (pl) {
+      meta += '  ·  ' + (library.activeSongIndex + 1) + ' of ' + pl.songIds.length + ' in ' + pl.name;
+    }
+    $('song-bar-meta').textContent = meta;
+    const prev = $('song-prev'), next = $('song-next');
+    if (pl) {
+      prev.disabled = library.activeSongIndex <= 0;
+      next.disabled = library.activeSongIndex >= pl.songIds.length - 1;
+      prev.style.visibility = 'visible'; next.style.visibility = 'visible';
+    } else {
+      prev.style.visibility = 'hidden'; next.style.visibility = 'hidden';
+    }
+  }
+  function updateSaveChangesBtn() {
+    const btn = $('save-changes-btn');
+    btn.hidden = !library.currentSongId;
+    if (library.currentSongId) {
+      const s = findSong(library.currentSongId);
+      btn.textContent = s ? 'Save changes to “' + s.name + '”' : 'Save changes';
+    }
+  }
+
+  // -- Library overlay UI --
+  const libraryOverlay = $('library-overlay');
+  const libraryTabs = $('library-tabs');
+  const tabSongs = $('tab-songs');
+  const tabPlaylists = $('tab-playlists');
+  const songsList = $('songs-list');
+  const playlistsList = $('playlists-list');
+  const playlistsListView = $('playlists-list-view');
+  const playlistDetailView = $('playlist-detail-view');
+  const playlistDetailTitle = $('playlist-detail-title');
+  const playlistSongs = $('playlist-songs');
+  const detailsModal = $('details-modal');
+  const detailsName = $('details-name');
+  const detailsKey = $('details-key');
+  const detailsNotes = $('details-notes');
+  const pickerModal = $('picker-modal');
+  const pickerList = $('picker-list');
+
+  let detailsEditingSongId = null;
+  let currentPlaylistDetailId = null;
+
+  function openLibrary() {
+    renderSongsList();
+    renderPlaylistsList();
+    libraryOverlay.hidden = false;
+  }
+  function closeLibrary() {
+    libraryOverlay.hidden = true;
+    showPlaylistListView();
+  }
+  function switchTab(name) {
+    libraryTabs.querySelectorAll('.tab').forEach(t => {
+      t.classList.toggle('selected', t.dataset.tab === name);
+    });
+    tabSongs.hidden = name !== 'songs';
+    tabPlaylists.hidden = name !== 'playlists';
+    const tabBackup = $('tab-backup');
+    if (tabBackup) tabBackup.hidden = name !== 'backup';
+    if (name === 'playlists') showPlaylistListView();
+    if (name === 'backup') updateBackupStats();
+  }
+
+  function updateBackupStats() {
+    const el = $('backup-stats');
+    if (!el) return;
+    el.textContent = library.songs.length + ' song' + (library.songs.length === 1 ? '' : 's') +
+      ' · ' + library.playlists.length + ' playlist' + (library.playlists.length === 1 ? '' : 's') + ' in library';
+  }
+  function showPlaylistListView() {
+    playlistsListView.hidden = false;
+    playlistDetailView.hidden = true;
+    currentPlaylistDetailId = null;
+  }
+  function showPlaylistDetail(playlistId) {
+    const p = findPlaylist(playlistId); if (!p) return;
+    currentPlaylistDetailId = playlistId;
+    playlistsListView.hidden = true;
+    playlistDetailView.hidden = false;
+    playlistDetailTitle.textContent = p.name;
+    renderPlaylistDetail();
+  }
+
+  function renderSongsList() {
+    songsList.innerHTML = '';
+    if (library.songs.length === 0) {
+      songsList.innerHTML = '<div class="empty-state">No saved songs yet.<br>Set up the metronome how you want it, then tap "Save current as new song".</div>';
+      return;
+    }
+    library.songs.forEach(song => {
+      const item = document.createElement('div');
+      item.className = 'list-item' + (song.id === library.currentSongId ? ' active-song' : '');
+      const main = document.createElement('div');
+      main.className = 'li-main';
+      main.innerHTML = '<div class="li-name"></div><div class="li-meta"></div>';
+      main.querySelector('.li-name').textContent = song.name;
+      main.querySelector('.li-meta').textContent = songMetaLine(song);
+      main.addEventListener('click', () => { loadSong(song.id); closeLibrary(); });
+      item.appendChild(main);
+      const actions = document.createElement('div');
+      actions.className = 'li-actions';
+      const loadBtn = document.createElement('button');
+      loadBtn.className = 'primary';
+      loadBtn.textContent = 'Load';
+      loadBtn.addEventListener('click', e => { e.stopPropagation(); loadSong(song.id); closeLibrary(); });
+      const editBtn = document.createElement('button');
+      editBtn.textContent = 'Details';
+      editBtn.addEventListener('click', e => { e.stopPropagation(); openSongDetailsModal(song.id); });
+      const delBtn = document.createElement('button');
+      delBtn.className = 'danger';
+      delBtn.textContent = 'Delete';
+      delBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        if (confirm('Delete song "' + song.name + '"? It will also be removed from any playlists.')) {
+          deleteSong(song.id);
+          renderSongsList();
+          if (currentPlaylistDetailId) renderPlaylistDetail();
+          updateSongBar();
+          updateSaveChangesBtn();
+        }
+      });
+      actions.appendChild(loadBtn);
+      actions.appendChild(editBtn);
+      actions.appendChild(delBtn);
+      item.appendChild(actions);
+      songsList.appendChild(item);
+    });
+  }
+
+  function renderPlaylistsList() {
+    playlistsList.innerHTML = '';
+    if (library.playlists.length === 0) {
+      playlistsList.innerHTML = '<div class="empty-state">No playlists yet.<br>Create one to build a setlist.</div>';
+      return;
+    }
+    library.playlists.forEach(p => {
+      const item = document.createElement('div');
+      item.className = 'list-item';
+      const main = document.createElement('div');
+      main.className = 'li-main';
+      main.innerHTML = '<div class="li-name"></div><div class="li-meta"></div>';
+      main.querySelector('.li-name').textContent = p.name;
+      const n = p.songIds.length;
+      main.querySelector('.li-meta').textContent = n + ' song' + (n === 1 ? '' : 's');
+      main.addEventListener('click', () => showPlaylistDetail(p.id));
+      item.appendChild(main);
+      const actions = document.createElement('div');
+      actions.className = 'li-actions';
+      const openBtn = document.createElement('button');
+      openBtn.textContent = 'Open';
+      openBtn.addEventListener('click', e => { e.stopPropagation(); showPlaylistDetail(p.id); });
+      const playBtn = document.createElement('button');
+      playBtn.className = 'primary';
+      playBtn.textContent = '▶ Play';
+      playBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        if (p.songIds.length === 0) { alert('Add some songs to this playlist first.'); return; }
+        startPlaylist(p.id); closeLibrary();
+      });
+      const renameBtn = document.createElement('button');
+      renameBtn.textContent = 'Rename';
+      renameBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        const nn = prompt('Rename playlist:', p.name);
+        if (nn && nn.trim()) { renamePlaylist(p.id, nn); renderPlaylistsList(); }
+      });
+      const delBtn = document.createElement('button');
+      delBtn.className = 'danger';
+      delBtn.textContent = 'Delete';
+      delBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        if (confirm('Delete playlist "' + p.name + '"?')) {
+          deletePlaylist(p.id);
+          renderPlaylistsList();
+          updateSongBar();
+        }
+      });
+      actions.appendChild(openBtn);
+      actions.appendChild(playBtn);
+      actions.appendChild(renameBtn);
+      actions.appendChild(delBtn);
+      item.appendChild(actions);
+      playlistsList.appendChild(item);
+    });
+  }
+
+  function renderPlaylistDetail() {
+    const p = findPlaylist(currentPlaylistDetailId);
+    if (!p) return;
+    playlistDetailTitle.textContent = p.name;
+    playlistSongs.innerHTML = '';
+    if (p.songIds.length === 0) {
+      playlistSongs.innerHTML = '<div class="empty-state">No songs in this playlist yet.<br>Tap "Add songs" above.</div>';
+      return;
+    }
+    p.songIds.forEach((sid, idx) => {
+      const s = findSong(sid);
+      if (!s) return;
+      const row = document.createElement('div');
+      row.className = 'playlist-song-row';
+      const info = document.createElement('div');
+      info.className = 'ps-info';
+      info.style.cursor = 'pointer';
+      info.innerHTML = '<div class="ps-name"></div><div class="ps-meta"></div>';
+      info.querySelector('.ps-name').textContent = (idx + 1) + '. ' + s.name;
+      info.querySelector('.ps-meta').textContent = songMetaLine(s);
+      info.addEventListener('click', () => { startPlaylistAtIndex(p.id, idx); closeLibrary(); });
+      row.appendChild(info);
+      const actions = document.createElement('div');
+      actions.className = 'ps-actions';
+      const upBtn = document.createElement('button');
+      upBtn.className = 'icon-btn';
+      upBtn.textContent = '▲';
+      upBtn.title = 'Move up';
+      if (idx === 0) upBtn.disabled = true;
+      upBtn.addEventListener('click', () => { moveSongInPlaylist(p.id, idx, idx - 1); renderPlaylistDetail(); });
+      const downBtn = document.createElement('button');
+      downBtn.className = 'icon-btn';
+      downBtn.textContent = '▼';
+      downBtn.title = 'Move down';
+      if (idx === p.songIds.length - 1) downBtn.disabled = true;
+      downBtn.addEventListener('click', () => { moveSongInPlaylist(p.id, idx, idx + 1); renderPlaylistDetail(); });
+      const remBtn = document.createElement('button');
+      remBtn.className = 'icon-btn danger';
+      remBtn.textContent = '✕';
+      remBtn.title = 'Remove from playlist';
+      remBtn.addEventListener('click', () => { removeSongFromPlaylist(p.id, idx); renderPlaylistDetail(); });
+      actions.appendChild(upBtn);
+      actions.appendChild(downBtn);
+      actions.appendChild(remBtn);
+      row.appendChild(actions);
+      playlistSongs.appendChild(row);
+    });
+  }
+
+  // -- Modal: song details (name/key/notes) --
+  function openSongDetailsModal(songId) {
+    const s = findSong(songId); if (!s) return;
+    detailsEditingSongId = songId;
+    detailsName.value = s.name;
+    detailsKey.value = s.key || '';
+    detailsNotes.value = s.notes || '';
+    detailsModal.hidden = false;
+    setTimeout(() => detailsName.focus(), 50);
+  }
+  function closeSongDetailsModal() {
+    detailsModal.hidden = true;
+    detailsEditingSongId = null;
+  }
+  $('details-cancel').addEventListener('click', closeSongDetailsModal);
+  $('details-save').addEventListener('click', () => {
+    if (!detailsEditingSongId) return;
+    const name = detailsName.value.trim();
+    if (!name) { alert('Name is required.'); return; }
+    updateSongDetails(detailsEditingSongId, {
+      name: name, key: detailsKey.value, notes: detailsNotes.value,
+    });
+    closeSongDetailsModal();
+    renderSongsList();
+    if (currentPlaylistDetailId) renderPlaylistDetail();
+    updateSongBar();
+    updateSaveChangesBtn();
+  });
+  detailsModal.addEventListener('click', e => { if (e.target === detailsModal) closeSongDetailsModal(); });
+
+  // -- Modal: song picker (add to playlist) --
+  function openPickerModal() {
+    if (!currentPlaylistDetailId) return;
+    pickerList.innerHTML = '';
+    if (library.songs.length === 0) {
+      pickerList.innerHTML = '<div class="empty-state">No songs to add yet. Save some songs first.</div>';
+    } else {
+      library.songs.forEach(song => {
+        const row = document.createElement('label');
+        row.className = 'picker-row';
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.dataset.id = song.id;
+        const info = document.createElement('div');
+        info.className = 'pr-info';
+        info.innerHTML = '<div class="pr-name"></div><div class="pr-meta"></div>';
+        info.querySelector('.pr-name').textContent = song.name;
+        info.querySelector('.pr-meta').textContent = songMetaLine(song);
+        row.appendChild(chk);
+        row.appendChild(info);
+        pickerList.appendChild(row);
+      });
+    }
+    pickerModal.hidden = false;
+  }
+  $('picker-cancel').addEventListener('click', () => { pickerModal.hidden = true; });
+  $('picker-add').addEventListener('click', () => {
+    const ids = Array.from(pickerList.querySelectorAll('input:checked')).map(c => c.dataset.id);
+    pickerModal.hidden = true;
+    if (ids.length === 0) return;
+    addSongsToPlaylist(currentPlaylistDetailId, ids);
+    renderPlaylistDetail();
+  });
+  pickerModal.addEventListener('click', e => { if (e.target === pickerModal) pickerModal.hidden = true; });
+
+  // -- Wire up main library buttons --
+  $('save-current-btn').addEventListener('click', () => {
+    const name = prompt('Name for this song:');
+    if (!name || !name.trim()) return;
+    const song = createSongFromCurrent(name);
+    library.currentSongId = song.id;
+    persist();
+    updateSongBar();
+    updateSaveChangesBtn();
+  });
+  $('save-changes-btn').addEventListener('click', () => {
+    if (!library.currentSongId) return;
+    updateSongFromCurrent(library.currentSongId);
+    const s = findSong(library.currentSongId);
+    if (s) updateSongBar();
+  });
+  $('open-library-btn').addEventListener('click', openLibrary);
+  $('library-close').addEventListener('click', closeLibrary);
+  $('playlist-back').addEventListener('click', showPlaylistListView);
+  libraryTabs.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => switchTab(t.dataset.tab));
+  });
+  $('lib-new-song').addEventListener('click', () => {
+    const name = prompt('Name for this song:');
+    if (!name || !name.trim()) return;
+    const song = createSongFromCurrent(name);
+    library.currentSongId = song.id;
+    persist();
+    updateSongBar();
+    updateSaveChangesBtn();
+    renderSongsList();
+  });
+  $('lib-new-playlist').addEventListener('click', () => {
+    const name = prompt('Name for the new playlist:');
+    if (!name || !name.trim()) return;
+    const p = createPlaylist(name);
+    renderPlaylistsList();
+    showPlaylistDetail(p.id);
+  });
+  $('playlist-play-btn').addEventListener('click', () => {
+    if (!currentPlaylistDetailId) return;
+    const p = findPlaylist(currentPlaylistDetailId);
+    if (!p || p.songIds.length === 0) { alert('Add some songs to this playlist first.'); return; }
+    startPlaylist(p.id); closeLibrary();
+  });
+  $('playlist-add-songs-btn').addEventListener('click', openPickerModal);
+
+  // -- Backup: export / import --
+  $('export-btn').addEventListener('click', () => {
+    const data = {
+      format: 'metronome-practice',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      songs: library.songs,
+      playlists: library.playlists,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const ts = new Date().toISOString().slice(0, 10);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'metronome-library-' + ts + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+
+  $('import-btn').addEventListener('click', () => $('import-input').click());
+  $('import-input').addEventListener('change', e => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        const importedSongs = Array.isArray(data.songs) ? data.songs : [];
+        const importedPlaylists = Array.isArray(data.playlists) ? data.playlists : [];
+        if (importedSongs.length === 0 && importedPlaylists.length === 0) {
+          alert("That file doesn't contain any songs or playlists.");
+          return;
+        }
+        // Re-id everything to avoid collisions with existing entries
+        const idMap = {};
+        importedSongs.forEach(s => {
+          if (!s || typeof s !== 'object' || !s.snapshot) return;
+          const newId = makeId('s');
+          if (s.id) idMap[s.id] = newId;
+          library.songs.push({
+            id: newId,
+            name: String(s.name || 'Imported song'),
+            key: String(s.key || ''),
+            notes: String(s.notes || ''),
+            snapshot: s.snapshot,
+          });
+        });
+        importedPlaylists.forEach(p => {
+          if (!p || typeof p !== 'object' || !Array.isArray(p.songIds)) return;
+          const newId = makeId('p');
+          const remapped = p.songIds.map(sid => idMap[sid]).filter(Boolean);
+          library.playlists.push({
+            id: newId,
+            name: String(p.name || 'Imported playlist'),
+            songIds: remapped,
+          });
+        });
+        persist();
+        renderSongsList();
+        renderPlaylistsList();
+        updateBackupStats();
+        alert('Imported ' + importedSongs.length + ' song' + (importedSongs.length === 1 ? '' : 's') +
+          ' and ' + importedPlaylists.length + ' playlist' + (importedPlaylists.length === 1 ? '' : 's') + '.');
+      } catch (err) {
+        alert('Failed to import: ' + err.message);
+      } finally {
+        e.target.value = '';  // allow re-importing the same file later
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  // -- Song bar nav --
+  $('song-prev').addEventListener('click', () => gotoSongInPlaylist(-1));
+  $('song-next').addEventListener('click', () => gotoSongInPlaylist(1));
+  $('song-close').addEventListener('click', endPlaylistMode);
+
+  // -- Restore on load --
+  restoreLibrary();
+  if (library.currentSongId) {
+    const s = findSong(library.currentSongId);
+    if (s) applySnapshot(s.snapshot);
+    else library.currentSongId = null;
+  }
+  updateSongBar();
+  updateSaveChangesBtn();
+
+  renderPattern();
+
+  // ============== Service worker registration ==============
+  // Only registers when served over http(s) — does nothing for file:// or
+  // when running inside an iframe sandbox that disallows SW.
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('2026-05-19-metronome-sw.js').catch(err => {
+        console.warn('Service worker registration failed:', err);
+      });
+    });
+  }
+})();
+</script>
+</body>
+</html>

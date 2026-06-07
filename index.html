@@ -748,6 +748,46 @@
     font-size: 11px;
     margin-top: 2px;
   }
+
+  /* ===== Timer ===== */
+  .timer-display {
+    text-align: center;
+    font-size: 56px;
+    font-weight: 200;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    margin: 6px 0 16px;
+  }
+  .timer-display.done { color: #ff6b35; }
+  .timer-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .timer-controls .btn {
+    flex: 1;
+    height: 48px;
+    font-size: 14px;
+  }
+  .countdown-inputs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .countdown-inputs label {
+    flex: 1;
+    color: #aaa;
+    font-size: 14px;
+  }
+  .countdown-inputs .num-input { width: 64px; }
+  .countdown-inputs .colon {
+    color: #666;
+    font-size: 18px;
+    font-weight: 200;
+  }
   .controls-bottom {
     width: 100%;
     display: flex;
@@ -807,6 +847,32 @@
       <button class="nudge" id="bpm-down" aria-label="Decrease tempo">&minus;</button>
       <input type="range" min="30" max="300" value="100" class="slider" id="bpm-slider" aria-label="Tempo">
       <button class="nudge" id="bpm-up" aria-label="Increase tempo">+</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Timer</div>
+    <div class="row">
+      <label>Mode</label>
+      <div class="pills" id="timer-mode-pills">
+        <button class="pill selected" type="button" data-val="stopwatch">Stopwatch</button>
+        <button class="pill" type="button" data-val="countdown">Countdown</button>
+      </div>
+    </div>
+    <div class="countdown-inputs" id="countdown-inputs" hidden>
+      <label>Duration</label>
+      <input type="number" class="num-input" id="countdown-min" min="0" max="180" step="1" value="5" aria-label="Minutes">
+      <span class="colon">:</span>
+      <input type="number" class="num-input" id="countdown-sec" min="0" max="59" step="1" value="0" aria-label="Seconds">
+    </div>
+    <div class="timer-display" id="timer-display">00:00</div>
+    <div class="timer-controls">
+      <button class="btn" id="timer-reset" type="button">RESET</button>
+      <button class="btn btn-primary" id="timer-toggle" type="button">START</button>
+    </div>
+    <div class="row" style="margin-bottom:0">
+      <label>Link to metronome <span class="desc">(start/stop together)</span></label>
+      <div class="toggle" id="timer-link" role="switch" aria-checked="false" tabindex="0"></div>
     </div>
   </div>
 
@@ -1094,6 +1160,17 @@
         countInBeats: 4,
       },
     },
+  };
+
+  // Timer state — mixes persisted settings (mode/linked) and runtime (running/displayMs)
+  const timer = {
+    mode: 'stopwatch',     // 'stopwatch' | 'countdown'
+    linked: false,         // metronome start/stop also drives timer
+    running: false,        // runtime
+    displayMs: 0,          // runtime — what's shown
+    runStartWall: 0,       // runtime — performance.now() when current run-segment began
+    runStartDisplay: 0,    // runtime — displayMs at the moment of run start
+    intervalId: null,
   };
 
   // Runtime bookkeeping for practice mode — recomputed at each start()
@@ -1390,6 +1467,8 @@
     requestAnimationFrame(drawLoop);
     updatePlayBtn();
     updatePracticeBadges();
+    // Linked timer: start it too
+    if (timer.linked && !timer.running) timerStart();
   }
   function stop() {
     if (!isPlaying) return;
@@ -1401,6 +1480,8 @@
     practiceRuntime.inCountIn = false;
     updatePlayBtn();
     updatePracticeBadges();
+    // Linked timer: pause it too
+    if (timer.linked && timer.running) timerPause();
   }
   function toggleTransport() { isPlaying ? stop() : start(); }
 
@@ -2530,11 +2611,198 @@
   updateSongBar();
   updateSaveChangesBtn();
 
+  // ============== Timer ==============
+  const TIMER_KEY = 'metronomePractice.timer.v1';
+
+  const timerModePills = $('timer-mode-pills');
+  const countdownInputsRow = $('countdown-inputs');
+  const countdownMinInput = $('countdown-min');
+  const countdownSecInput = $('countdown-sec');
+  const timerDisplay = $('timer-display');
+  const timerResetBtn = $('timer-reset');
+  const timerToggleBtn = $('timer-toggle');
+  const timerLinkToggle = $('timer-link');
+
+  function formatTime(ms) {
+    const total = Math.max(0, Math.floor(ms / 1000));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    const pad = n => (n < 10 ? '0' : '') + n;
+    if (h > 0) return h + ':' + pad(m) + ':' + pad(s);
+    return pad(m) + ':' + pad(s);
+  }
+
+  function parseCountdownTotal() {
+    const m = Math.max(0, parseInt(countdownMinInput.value, 10) || 0);
+    const s = Math.max(0, Math.min(59, parseInt(countdownSecInput.value, 10) || 0));
+    return (m * 60 + s) * 1000;
+  }
+
+  function renderTimer() {
+    timerDisplay.textContent = formatTime(timer.displayMs);
+    timerToggleBtn.textContent = timer.running ? 'PAUSE' : 'START';
+    timerToggleBtn.classList.toggle('playing', timer.running);
+    if (timer.displayMs > 0) timerDisplay.classList.remove('done');
+  }
+
+  function timerStart() {
+    if (timer.running) return;
+    // For countdown: prime the display with the target if it's at zero
+    if (timer.mode === 'countdown' && timer.displayMs <= 0) {
+      timer.displayMs = parseCountdownTotal();
+      if (timer.displayMs <= 0) return;  // nothing to count down to
+      timerDisplay.classList.remove('done');
+    }
+    timer.running = true;
+    timer.runStartWall = performance.now();
+    timer.runStartDisplay = timer.displayMs;
+    timer.intervalId = setInterval(timerTick, 100);
+    renderTimer();
+    // Linked: also start the metronome if it's not already running.
+    // The guard inside start() (which checks !timer.running) prevents recursion
+    // since we've already set timer.running = true above.
+    if (timer.linked && !isPlaying) start();
+  }
+
+  function timerPause() {
+    if (!timer.running) return;
+    // Snapshot displayMs before pausing (uses wall clock — robust to throttling)
+    const elapsed = performance.now() - timer.runStartWall;
+    if (timer.mode === 'stopwatch') {
+      timer.displayMs = timer.runStartDisplay + elapsed;
+    } else {
+      timer.displayMs = Math.max(0, timer.runStartDisplay - elapsed);
+    }
+    clearInterval(timer.intervalId);
+    timer.intervalId = null;
+    timer.running = false;
+    renderTimer();
+    // Linked: also stop the metronome. timer.running is false at this point,
+    // so stop()'s linked-pause check is a no-op (no recursion).
+    if (timer.linked && isPlaying) stop();
+  }
+
+  function timerReset() {
+    // Pausing first handles the linked-stop-the-metronome logic
+    if (timer.running) timerPause();
+    timer.displayMs = (timer.mode === 'stopwatch') ? 0 : parseCountdownTotal();
+    timerDisplay.classList.remove('done');
+    renderTimer();
+  }
+
+  function timerTick() {
+    if (!timer.running) return;
+    const elapsed = performance.now() - timer.runStartWall;
+    if (timer.mode === 'stopwatch') {
+      timer.displayMs = timer.runStartDisplay + elapsed;
+    } else {
+      timer.displayMs = Math.max(0, timer.runStartDisplay - elapsed);
+      if (timer.displayMs <= 0) { onCountdownDone(); return; }
+    }
+    timerDisplay.textContent = formatTime(timer.displayMs);
+  }
+
+  function onCountdownDone() {
+    timer.displayMs = 0;
+    if (timer.intervalId) clearInterval(timer.intervalId);
+    timer.intervalId = null;
+    timer.running = false;
+    timerDisplay.classList.add('done');
+    renderTimer();
+    // Auto-stop the metronome (regardless of link state) when countdown finishes
+    if (isPlaying) stop();
+  }
+
+  function setTimerMode(mode) {
+    if (timer.running) timerPause();
+    timer.mode = mode;
+    countdownInputsRow.hidden = (mode !== 'countdown');
+    timer.displayMs = (mode === 'stopwatch') ? 0 : parseCountdownTotal();
+    timerDisplay.classList.remove('done');
+    timerModePills.querySelectorAll('.pill').forEach(p => {
+      p.classList.toggle('selected', p.dataset.val === mode);
+    });
+    renderTimer();
+    persistTimer();
+  }
+
+  function setTimerLinked(on) {
+    timer.linked = on;
+    timerLinkToggle.classList.toggle('on', on);
+    timerLinkToggle.setAttribute('aria-checked', String(on));
+    persistTimer();
+  }
+
+  function persistTimer() {
+    try {
+      localStorage.setItem(TIMER_KEY, JSON.stringify({
+        mode: timer.mode,
+        countdownMin: parseInt(countdownMinInput.value, 10) || 0,
+        countdownSec: parseInt(countdownSecInput.value, 10) || 0,
+        linked: timer.linked,
+      }));
+    } catch (e) {}
+  }
+
+  function restoreTimer() {
+    try {
+      const raw = localStorage.getItem(TIMER_KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      if (d.mode === 'stopwatch' || d.mode === 'countdown') timer.mode = d.mode;
+      if (Number.isFinite(d.countdownMin)) countdownMinInput.value = d.countdownMin;
+      if (Number.isFinite(d.countdownSec)) countdownSecInput.value = d.countdownSec;
+      timer.linked = !!d.linked;
+    } catch (e) {}
+  }
+
+  // Handlers
+  timerModePills.querySelectorAll('.pill').forEach(p => {
+    p.addEventListener('click', () => setTimerMode(p.dataset.val));
+  });
+  function onCountdownInputChange() {
+    if (!timer.running && timer.mode === 'countdown') {
+      timer.displayMs = parseCountdownTotal();
+      renderTimer();
+    }
+    persistTimer();
+  }
+  countdownMinInput.addEventListener('change', onCountdownInputChange);
+  countdownSecInput.addEventListener('change', onCountdownInputChange);
+  countdownMinInput.addEventListener('focus', () => countdownMinInput.select());
+  countdownSecInput.addEventListener('focus', () => countdownSecInput.select());
+  timerToggleBtn.addEventListener('click', () => {
+    if (timer.running) timerPause(); else timerStart();
+  });
+  timerResetBtn.addEventListener('click', timerReset);
+  timerLinkToggle.addEventListener('click', () => setTimerLinked(!timer.linked));
+  timerLinkToggle.addEventListener('keydown', e => {
+    if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); setTimerLinked(!timer.linked); }
+  });
+
+  // Initialize timer UI from any saved settings
+  restoreTimer();
+  setTimerMode(timer.mode);
+  setTimerLinked(timer.linked);
+
   renderPattern();
 
   // ============== Service worker registration ==============
   // Only registers when served over http(s) — does nothing for file:// or
   // when running inside an iframe sandbox that disallows SW.
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('2026-05-19-metronome-sw.js').catch(err => {
+        console.warn('Service worker registration failed:', err);
+      });
+    });
+  }
+})();
+</script>
+</body>
+</html>
+t disallows SW.
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('2026-05-19-metronome-sw.js').catch(err => {

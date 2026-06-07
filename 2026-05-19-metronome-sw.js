@@ -2,7 +2,7 @@
 // Strategy: cache-first for the app shell. Bump CACHE_NAME to force a refresh
 // when shipping a new version of the HTML.
 
-const CACHE_NAME = 'metronome-practice-v2';
+const CACHE_NAME = 'metronome-practice-v3';
 
 const PRECACHE_URLS = [
   './',
